@@ -57,3 +57,5 @@ typings/
 # dotenv environment variables file
 .env
 
+# idea ide such as phpStorm webStorm
+.idea/
