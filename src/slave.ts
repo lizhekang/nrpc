@@ -48,7 +48,7 @@ class Slave extends TaskHandler {
 
                     this._client.write(msgResp);
                 }).catch((err) => {
-                    rpcData.result = data;
+                    rpcData.result = err;
                     msgResp.data = rpcData;
 
                     this._client.write(msgResp);

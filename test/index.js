@@ -7,8 +7,12 @@ let scfg = require('./config/slave');
 let Core = require('../index');
 
 class tpl {
-    static test() {
-        return Promise.all([123]);
+    static test(a, b) {
+        return Promise.resolve(a + b);
+    }
+
+    static add(a, b) {
+        return a + b;
     }
 }
 
@@ -16,6 +20,14 @@ let c1 = new Core(tpl, mcfg);
 
 setTimeout(() => {
     c1.init();
+
+    setTimeout(() => {
+        c1.call('test', [100, 20], (data) => {
+            console.log('100 + 20 = %d', data);
+        }, (err) => {
+            console.log(err);
+        })
+    }, 100);
 }, 2000);
 
 
