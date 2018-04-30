@@ -142,6 +142,7 @@ class Client extends Socket {
 
     private _client;
     private _retryTime;
+    private _timer;
 
     constructor(option) {
         super(option);
@@ -158,17 +159,14 @@ class Client extends Socket {
             let cfg = this._option;
             this._client = net.createConnection({port: cfg.port}, () => {
                 let that = this;
-                tick();
+
+                this._timer = setInterval(tick, 2000);
 
                 function tick() {
                     let msg = new Message('tick', 0, '');
 
                     that._client.write(JSON.stringify(msg.getMessage()));
-
-                    setTimeout(() => {
-                        tick();
-                    }, 2000);
-                }
+                };
 
                 this._client.on('data', (data) => {
                     //data handler
@@ -213,6 +211,7 @@ class Client extends Socket {
     public destroy() {
         this._client.end();
         this._client = null;
+        this._timer && clearInterval(this._timer);
     }
 }
 

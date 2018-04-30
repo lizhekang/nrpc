@@ -2,6 +2,7 @@
 
 import TaskHandler from './taskHandler';
 import {DataHelper, Message, Server} from './socket';
+import {NOREMOTECLIENT, REMOTEFUNCISNOTDEFINE, NOREMOTECLIENTAVAIL, CALLTIMEOUT} from './error'
 
 /**
  * rpc framework master part
@@ -10,6 +11,7 @@ import {DataHelper, Message, Server} from './socket';
 class Master extends TaskHandler {
     private _server;
     private _cbMap;
+    private _timer;
 
     /**
      * Master constructor
@@ -25,6 +27,8 @@ class Master extends TaskHandler {
     public init() {
         let cfg = this._config;
 
+        this._timer = setInterval(this._checkCbMap.bind(this), 1000);  //every second.
+
         this._server = new Server(cfg.server);
         this._server.start();
         this._server.on('rpc', this._rpc.bind(this));
@@ -38,30 +42,38 @@ class Master extends TaskHandler {
      */
     public call(name: string, params: Array<any>, cb: Function, errCb: Function): void {
         if (typeof this._object[name] != 'function') {
-            let res = new Result(-1, 'Function was not defined.');
+            let res = new Result(REMOTEFUNCISNOTDEFINE.result, REMOTEFUNCISNOTDEFINE.msg);
             errCb(res.getResult());
         }
 
         //random
         //TODO: change to something new
-        let map = this._server.getClientMap();
+        //let map = this._server.getClientMap();
+        let map = this._getValCbMap();
         let keys = Object.keys(map);
 
         if (keys.length > 0) {
             let index = Math.floor(Math.random() * keys.length);
-
+            let key = keys[index];
             let client = map[keys[index]];  //choose socket client
 
             let rpcMsg = new Message('rpc', 0, {
                 name: name,
                 params: params,
-                callback: this._register(name, cb)  //register random cb function
+                callback: this._register(name, key, cb, errCb)  //register random cb function
             });
 
             client.write(DataHelper.getString(rpcMsg.getMessage()));
-
         } else {
-            let res = new Result(-1, 'Not remote client is available.');
+            let map = this._server.getClientMap();
+            let keys = Object.keys(map);
+            let res;
+
+            if (keys.length > 0) {
+                res = new Result(NOREMOTECLIENTAVAIL.result, NOREMOTECLIENTAVAIL.msg);
+            } else {
+                res = new Result(NOREMOTECLIENT.result, NOREMOTECLIENT.msg);
+            }
             errCb(res.getResult());
         }
 
@@ -70,8 +82,9 @@ class Master extends TaskHandler {
     private _rpc(msg) {
         let data: rpcResp = msg.data;
 
-        if(typeof this._cbMap[data.callback] == 'function') {
-            this._cbMap[data.callback](data.result);
+        if (this._cbMap[data.callback] && typeof this._cbMap[data.callback].cb == 'function') {
+            this._cbMap[data.callback].cb(data.result);
+            delete this._cbMap[data.callback];
         }
     }
 
@@ -81,16 +94,69 @@ class Master extends TaskHandler {
      * @param {Function} callback
      * @private
      */
-    private _register(name: string, callback: Function) {
-        let cbName = name + '_' + new Date().getTime();
+    private _register(name: string, clientKey: string, cb: Function, errCb: Function) {
+        let timeStamp = new Date().getTime();
+        let cbName = name + '_' + timeStamp;
 
-        this._cbMap[cbName] = callback;
+        this._cbMap[cbName] = {
+            timeStamp: timeStamp,
+            clientKey: clientKey,
+            cb: cb,
+            errCb: errCb
+        };
 
         return cbName;
     }
 
+    /**
+     * check the queue and remove callbacks
+     * @private
+     */
+    private _checkCbMap() {
+        let keys = Object.keys(this._cbMap);
+        let timeStamp = new Date().getTime();
+
+        for (let i in keys) {
+            let key = keys[i];
+            let info = this._cbMap[key];
+
+            //default timeout 10 sec
+            if (timeStamp - info.timeStamp >= 10) {
+                let res = new Result(CALLTIMEOUT.result, CALLTIMEOUT.msg);
+
+                info.errCb(res.getResult());
+                delete this._cbMap[key];
+            }
+        }
+
+    }
+
+    private _getValCbMap() {
+        let keys = Object.keys(this._cbMap);
+        let occupy = {};
+        let res = {};
+        let map = this._server.getClientMap();
+
+        for (let i in keys) {
+            let key = keys[i];
+            let info = this._cbMap[key];
+            if (info) {
+                occupy[info.clientKey] = true;
+            }
+        }
+
+        for (let key in map) {
+            if (!occupy[key]) {
+                res[key] = map[key];
+            }
+        }
+
+        return res;
+    }
+
     public destroy() {
         this._server && this._server.destroy();
+        this._timer && clearInterval(this._timer);
     }
 }
 
