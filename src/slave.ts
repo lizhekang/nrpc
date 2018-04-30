@@ -67,7 +67,7 @@ class Slave extends TaskHandler {
     }
 
     public destroy() {
-        this._client.destroy();
+        this._client && this._client.destroy();
     }
 }
 

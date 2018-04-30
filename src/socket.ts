@@ -141,19 +141,23 @@ class Server extends Socket {
 class Client extends Socket {
 
     private _client;
+    private _retryTime;
 
     constructor(option) {
         super(option);
         this._client = null;
+        this._retryTime = this._option.maxRetryTimes;
     }
 
     start() {
+        this._initClientHandler();
+    }
+
+    private _initClientHandler() {
         if (!this._client) {
             let cfg = this._option;
-
             this._client = net.createConnection({port: cfg.port}, () => {
                 let that = this;
-
                 tick();
 
                 function tick() {
@@ -180,7 +184,26 @@ class Client extends Socket {
                     });
                 })
             });
+
+            this._client.on('error', (err) => {
+                console.log(err.code);
+
+                if (err.code == 'ECONNREFUSED' && this._option.retry && this._retryTime > 0) {
+                    this._retryTime--;
+                    console.log('Retry to connect after 1 sec!');
+                    setTimeout(() => {
+                        this._client = null;
+                        this._initClientHandler();
+                        //this._client.connect();
+                    }, 1000);
+
+                    return;
+                } else {
+                    throw err;
+                }
+            })
         }
+        this._retryTime = this._option.maxRetryTimes;
     }
 
     write(msg: Message) {

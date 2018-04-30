@@ -90,7 +90,7 @@ class Master extends TaskHandler {
     }
 
     public destroy() {
-        this._server.destroy();
+        this._server && this._server.destroy();
     }
 }
 

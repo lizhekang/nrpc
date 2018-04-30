@@ -4,6 +4,8 @@ declare interface config {
         name: string,
         ip: string,
         port: number,
-        timeout: number
+        timeout: number,
+        retry?: boolean,
+        maxRetryTimes?: number
     }
 }
