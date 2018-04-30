@@ -13,7 +13,7 @@ abstract class TaskHandler {
 
     public abstract call(name: string, params: Array<any>, cb: Function, errCb: Function);
 
-    public abstract destory();
+    public abstract destroy();
 }
 
 export default TaskHandler;

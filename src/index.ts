@@ -22,8 +22,8 @@ class Main {
         return this._taskHandler.call(name, params, cb, errCb);
     }
 
-    public destory() {
-        this._taskHandler.destory();
+    public destroy() {
+        this._taskHandler.destroy();
     }
 }
 

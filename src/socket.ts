@@ -45,7 +45,7 @@ abstract class Socket {
 
     abstract start();
 
-    abstract destory();
+    abstract destroy();
 }
 
 class DataHelper {
@@ -129,7 +129,7 @@ class Server extends Socket {
         return Promise.resolve(msg.getMessage());
     }
 
-    public destory() {
+    public destroy() {
         this._server.close(() => {
             console.log('Master Server close');
         });
@@ -187,7 +187,7 @@ class Client extends Socket {
         this._client.write(DataHelper.getString(msg.getMessage()));
     }
 
-    public destory() {
+    public destroy() {
         this._client.end();
         this._client = null;
     }

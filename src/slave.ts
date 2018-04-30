@@ -66,7 +66,7 @@ class Slave extends TaskHandler {
 
     }
 
-    public destory() {
+    public destroy() {
         this._client.destroy();
     }
 }

@@ -89,8 +89,8 @@ class Master extends TaskHandler {
         return cbName;
     }
 
-    public destory() {
-        this._server.destory();
+    public destroy() {
+        this._server.destroy();
     }
 }
 
