@@ -115,13 +115,13 @@ class Master extends TaskHandler {
     private _checkCbMap() {
         let keys = Object.keys(this._cbMap);
         let timeStamp = new Date().getTime();
+        let timeout = this._config.timeout || 10 * 1000;    //default timeout 10 sec
 
         for (let i in keys) {
             let key = keys[i];
             let info = this._cbMap[key];
 
-            //default timeout 10 sec
-            if (timeStamp - info.timeStamp >= 10) {
+            if (timeStamp - info.timeStamp >= timeout) {
                 let res = new Result(CALLTIMEOUT.result, CALLTIMEOUT.msg);
 
                 info.errCb(res.getResult());
