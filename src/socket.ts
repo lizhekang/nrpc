@@ -110,11 +110,6 @@ class Server extends Socket {
                     //remove worker
                     delete this._clientMap[key];
                 });
-
-                //timeout handler
-                c.setTimeout(cfg.timeout || KEEP_ALIVE_TIME, () => {
-                    c.destroy();
-                });
             });
 
             this._server.on('error', (err) => {

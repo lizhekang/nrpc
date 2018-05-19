@@ -1,6 +1,6 @@
 {
   "name": "wrpc",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Simple node RPC framework.",
   "main": "index.js",
   "repository": "git@github.com:lizhekang/wrpc.git",
@@ -8,9 +8,12 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^9.6.6",
-    "ava": "1.0.0-beta.4"
+    "ava": "1.0.0-beta.4",
+    "coveralls": "^3.0.1",
+    "nyc": "^11.8.0"
   },
   "scripts": {
-    "test": "ava"
+    "test": "nyc --reporter=html --reporter=text ava",
+    "coverage": "nyc report --reporter=text-lcov | coveralls"
   }
 }

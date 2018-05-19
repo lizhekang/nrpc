@@ -59,3 +59,11 @@ typings/
 
 # idea ide such as phpStorm webStorm
 .idea/
+
+# coverage
+coverage/
+.nyc_output/
+
+# lock
+package-lock.json
+yarn.lock

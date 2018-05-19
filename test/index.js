@@ -217,8 +217,3 @@ test.serial('remote much call in a time.', async t => {
     c2.destroy();
     c3.destroy();
 });
-
-test.serial('end no test.', async t => {
-    await pTimeout(1000);
-    t.pass();
-});
