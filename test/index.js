@@ -28,6 +28,14 @@ class tpl {
         return a + b;
     }
 
+    static addP(a, b) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                resolve(a + b);
+            }, 200)
+        });
+    }
+
     static timeout(a, b) {
         return new Promise((resolve, reject) => {
             setTimeout(() => {
@@ -180,19 +188,19 @@ test.serial('remote much call in a time.', async t => {
     await pTimeout(500);
 
     await new Promise((resolve, reject) => {
-        c1.call('add', [1, 2], (result) => {
+        c1.call('addP', [1, 1], (result) => {
 
         }, (err) => {
             t.fail(err.msg);
         });
 
-        c1.call('add', [1, 2], (result) => {
+        c1.call('addP', [1, 3], (result) => {
 
         }, (err) => {
             t.fail(err.msg);
         });
 
-        c1.call('add', [1, 2], (result) => {
+        c1.call('add', [1, 4], (result) => {
             t.fail();
             resolve(true);
         }, (err) => {
@@ -208,4 +216,9 @@ test.serial('remote much call in a time.', async t => {
     c1.destroy();
     c2.destroy();
     c3.destroy();
+});
+
+test.serial('end no test.', async t => {
+    await pTimeout(1000);
+    t.pass();
 });

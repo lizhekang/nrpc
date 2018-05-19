@@ -12,6 +12,7 @@ class Master extends TaskHandler {
     private _server;
     private _cbMap;
     private _timer;
+    private _baseCounter;
 
     /**
      * Master constructor
@@ -22,6 +23,7 @@ class Master extends TaskHandler {
         super(object, config);
 
         this._cbMap = {};
+        this._baseCounter = new Number(100000, 5);  //max call deep
     }
 
     public init() {
@@ -35,7 +37,7 @@ class Master extends TaskHandler {
     }
 
     /**
-     *
+     * core call function
      * @param {string} name
      * @param {Array<any>} params
      * @returns {Promise}
@@ -44,11 +46,10 @@ class Master extends TaskHandler {
         if (typeof this._object[name] != 'function') {
             let res = new Result(REMOTEFUNCISNOTDEFINE.result, REMOTEFUNCISNOTDEFINE.msg);
             errCb(res.getResult());
+
+            return;
         }
 
-        //random
-        //TODO: change to something new
-        //let map = this._server.getClientMap();
         let map = this._getValCbMap();
         let keys = Object.keys(map);
 
@@ -76,7 +77,6 @@ class Master extends TaskHandler {
             }
             errCb(res.getResult());
         }
-
     }
 
     private _rpc(msg) {
@@ -84,6 +84,7 @@ class Master extends TaskHandler {
 
         if (this._cbMap[data.callback] && typeof this._cbMap[data.callback].cb == 'function') {
             this._cbMap[data.callback].cb(data.result);
+
             delete this._cbMap[data.callback];
         }
     }
@@ -95,8 +96,9 @@ class Master extends TaskHandler {
      * @private
      */
     private _register(name: string, clientKey: string, cb: Function, errCb: Function) {
-        let timeStamp = new Date().getTime();
-        let cbName = name + '_' + timeStamp;
+        let number = this._baseCounter.getNext();
+        let timeStamp = Date.now();
+        let cbName = name + '_' + number;
 
         this._cbMap[cbName] = {
             timeStamp: timeStamp,
@@ -191,6 +193,28 @@ class Result {
 
     set data(data) {
         this._data = data;
+    }
+}
+
+class Number {
+    private _max;
+    private _base;
+    private _len;
+
+    public constructor(max, len) {
+        this._max = max;
+        this._base = 0;
+        this._len = len;
+    }
+
+    public getNext() {
+        let result = Math.floor((++this._base) % this._max);
+
+        return this._pad(result, this._len);
+    }
+
+    private _pad(num, n) {
+        return Array(n > num ? (n - ('' + num).length + 1) : 0).join('0') + num;
     }
 }
 

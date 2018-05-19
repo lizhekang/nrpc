@@ -37,8 +37,9 @@ class Slave extends TaskHandler {
             callback: data.callback,
             result: ""
         }));
+        let client = this._client;
 
-        if (typeof this._object[data.name] == 'function') {
+        if (typeof this._object[data.name] == 'function' && client) {
             let res = this._object[data.name].apply(this, data.params);
 
             if (res && res.toString() == '[object Promise]') {
@@ -46,18 +47,18 @@ class Slave extends TaskHandler {
                     rpcData.result = data;
                     msgResp.data = rpcData;
 
-                    this._client.write(msgResp);
+                    client.write(msgResp);
                 }).catch((err) => {
                     rpcData.result = err;
                     msgResp.data = rpcData;
 
-                    this._client.write(msgResp);
+                    client.write(msgResp);
                 })
             } else {
                 rpcData.result = res;
                 msgResp.data = rpcData;
 
-                this._client.write(msgResp);
+                client.write(msgResp);
             }
 
 
@@ -68,6 +69,7 @@ class Slave extends TaskHandler {
 
     public destroy() {
         this._client && this._client.destroy();
+        this._client = null;
     }
 }
 

@@ -1,6 +1,9 @@
 "use strict";
 import * as net from 'net';
 
+const ALIVE_TIME = 2000;    //2 second
+const KEEP_ALIVE_TIME = ALIVE_TIME + 3000;
+
 abstract class Socket {
     protected _option;
     protected _cbMap;
@@ -109,7 +112,7 @@ class Server extends Socket {
                 });
 
                 //timeout handler
-                c.setTimeout(cfg.timeout || 5000, () => {
+                c.setTimeout(cfg.timeout || KEEP_ALIVE_TIME, () => {
                     c.destroy();
                 });
             });
@@ -160,12 +163,12 @@ class Client extends Socket {
             this._client = net.createConnection({port: cfg.port}, () => {
                 let that = this;
 
-                this._timer = setInterval(tick, 2000);
+                this._timer = setInterval(tick, ALIVE_TIME);
 
                 function tick() {
                     let msg = new Message('tick', 0, '');
 
-                    that._client.write(JSON.stringify(msg.getMessage()));
+                    that._client && that._client.write(JSON.stringify(msg.getMessage()));
                 };
 
                 this._client.on('data', (data) => {
@@ -175,7 +178,7 @@ class Client extends Socket {
                     this.handlerMessage(msg).then((res: any) => {
                         //if data is msg, pass toward the target
                         if (res && typeof res == 'object' && res.action) {
-                            this._client.write(DataHelper.getString(res));
+                            that._client && this._client.write(DataHelper.getString(res));
                         }
                     }).catch((err) => {
                         console.log(err);
@@ -205,7 +208,7 @@ class Client extends Socket {
     }
 
     write(msg: Message) {
-        this._client.write(DataHelper.getString(msg.getMessage()));
+        this._client && this._client.write(DataHelper.getString(msg.getMessage()));
     }
 
     public destroy() {
