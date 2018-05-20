@@ -138,13 +138,13 @@ class Server extends Socket {
 
 class Client extends Socket {
 
-    private _client;
+    private _socket;
     private _retryTime;
     private _timer;
 
     constructor(option) {
         super(option);
-        this._client = null;
+        this._socket = null;
         this._retryTime = this._option.maxRetryTimes;
     }
 
@@ -153,9 +153,9 @@ class Client extends Socket {
     }
 
     private _initClientHandler() {
-        if (!this._client) {
+        if (!this._socket) {
             let cfg = this._option;
-            this._client = net.createConnection({port: cfg.port}, () => {
+            this._socket = net.createConnection({port: cfg.port}, () => {
                 let that = this;
 
                 this._timer = setInterval(tick, ALIVE_TIME);
@@ -163,17 +163,17 @@ class Client extends Socket {
                 function tick() {
                     let msg = new Message('tick', 0, '');
 
-                    that._client && that._client.write(JSON.stringify(msg.getMessage()));
+                    that._socket && that._socket.write(JSON.stringify(msg.getMessage()));
                 };
 
-                this._client.on('data', (data) => {
+                this._socket.on('data', (data) => {
                     //data handler
                     let msg: message = DataHelper.getJSON(data);
 
                     this.handlerMessage(msg).then((res: any) => {
                         //if data is msg, pass toward the target
                         if (res && typeof res == 'object' && res.action) {
-                            that._client && this._client.write(DataHelper.getString(res));
+                            that._socket && this._socket.write(DataHelper.getString(res));
                         }
                     }).catch((err) => {
                         console.log(err);
@@ -181,16 +181,15 @@ class Client extends Socket {
                 })
             });
 
-            this._client.on('error', (err) => {
+            this._socket.on('error', (err) => {
                 console.log(err.code);
 
                 if (err.code == 'ECONNREFUSED' && this._option.retry && this._retryTime > 0) {
                     this._retryTime--;
                     console.log('Retry to connect after 1 sec!');
                     setTimeout(() => {
-                        this._client = null;
+                        this._socket = null;
                         this._initClientHandler();
-                        //this._client.connect();
                     }, 1000);
 
                     return;
@@ -203,12 +202,12 @@ class Client extends Socket {
     }
 
     write(msg: Message) {
-        this._client && this._client.write(DataHelper.getString(msg.getMessage()));
+        this._socket && this._socket.write(DataHelper.getString(msg.getMessage()));
     }
 
     public destroy() {
-        this._client.end();
-        this._client = null;
+        this._socket.end();
+        this._socket = null;
         this._timer && clearInterval(this._timer);
     }
 }

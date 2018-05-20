@@ -21,8 +21,8 @@ let funcDef = {
 
 let cfg = {
   "type": "master", //本地
+  "name": "master",
   "server": {
-    "name": "worker1",
     "ip": "127.0.0.1",
     "port": 10001
   }
@@ -51,8 +51,8 @@ let funcDef = {
 
 let cfg = {
   "type": "slave",  //远程
+  "name": "worker1",
   "server": {
-    "name": "worker1",
     "ip": "127.0.0.1",
     "port": 10001
   }
@@ -68,8 +68,8 @@ s.init();
 
 {
   "type": "slave",
+  "name": "worker1",
   "server": {
-    "name": "worker1",
     "ip": "127.0.0.1",
     "port": 10001,
     "retry": true,
@@ -82,8 +82,8 @@ s.init();
 | 字段 | 类型 | 必须 | 说明 |
 | ---- | ----- | ---- | ---- |
 | type | string | 是 | master 或 slave，用于表示调用方与被调用方 |
+| name | string | 是 | 服务名 |
 | server | object | 是 | 服务配置 |
-| server --> name | string | 是 | 服务名 |
 | server --> ip | string | 是 | 服务地址 |
 | server --> port | number | 是 | 服务端口 |
 | server --> retry | boolean | 否 | 是否尝试重连，只对于被调用方服务生效 |

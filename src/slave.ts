@@ -8,6 +8,7 @@ import {Client, DataHelper, Message} from './socket';
  */
 class Slave extends TaskHandler {
     private _client;
+    private _name: string;
 
     /**
      * Master constructor
@@ -16,6 +17,8 @@ class Slave extends TaskHandler {
      */
     public constructor(object, config) {
         super(object, config);
+
+        this._name = config.name;
     }
 
     public init() {

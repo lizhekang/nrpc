@@ -1,7 +1,7 @@
 declare interface config {
     type: string,
+    name: string,
     server: {
-        name: string,
         ip: string,
         port: number,
         timeout: number,

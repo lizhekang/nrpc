@@ -12,6 +12,7 @@ class Master extends TaskHandler {
     private _server;
     private _cbMap;
     private _timer;
+    private _name;
     private _baseCounter;
 
     /**
@@ -24,6 +25,7 @@ class Master extends TaskHandler {
 
         this._cbMap = {};
         this._baseCounter = new Number(100000, 5);  //max call deep
+        this._name = config.name;
     }
 
     public init() {
