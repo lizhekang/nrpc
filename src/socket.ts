@@ -5,10 +5,12 @@ const ALIVE_TIME = 2000;    //2 second
 const KEEP_ALIVE_TIME = ALIVE_TIME + 3000;
 
 abstract class Socket {
+    protected _name;    //name for socket
     protected _option;
     protected _cbMap;
 
-    constructor(option) {
+    constructor(name: string, option: object) {
+        this._name = name;
         this._option = option;
         this._cbMap = {};
     }
@@ -66,8 +68,8 @@ class Server extends Socket {
     private _server: net.Server;
     private _clientMap;
 
-    public constructor(option) {
-        super(option);
+    public constructor(name, option) {
+        super(name, option);
         this._server = null;
         this._clientMap = {};
     }
@@ -84,7 +86,23 @@ class Server extends Socket {
             this._server = net.createServer((c) => {
                 console.log('connection:' + c.remoteAddress, c.remotePort);
                 let key = c.remoteAddress + '_' + c.remotePort;
-                this._clientMap[key] = c;
+                //this._clientMap[key] = c;
+
+                //ask client to reg
+                //handle get reg msg
+                let regKey = 'reg' + key;
+                this.on(regKey, (msg) => {
+                    let data = msg.data;
+                    let name = data.name;
+
+                    c['_name'] = name;
+                    this._clientMap[key] = c;
+                    console.log('reg:', key, name);
+                });
+                let regMsg = new Message('reg', 0, {
+                    regKey: regKey
+                });
+                c.write(JSON.stringify(regMsg.getMessage()));
 
                 //handle data input
                 c.on('data', (data) => {
@@ -142,26 +160,32 @@ class Client extends Socket {
     private _retryTime;
     private _timer;
 
-    constructor(option) {
-        super(option);
+    constructor(name, option) {
+        super(name, option);
+
         this._socket = null;
         this._retryTime = this._option.maxRetryTimes;
     }
 
-    start() {
+    public start() {
         this._initClientHandler();
     }
 
     private _initClientHandler() {
         if (!this._socket) {
+            let name = this._name;
             let cfg = this._option;
+            this.on('reg', this._reg.bind(this));
+
             this._socket = net.createConnection({port: cfg.port}, () => {
                 let that = this;
 
                 this._timer = setInterval(tick, ALIVE_TIME);
 
                 function tick() {
-                    let msg = new Message('tick', 0, '');
+                    let msg = new Message('tick', 0, {
+                        name: name    //tell server the name
+                    });
 
                     that._socket && that._socket.write(JSON.stringify(msg.getMessage()));
                 };
@@ -201,8 +225,17 @@ class Client extends Socket {
         this._retryTime = this._option.maxRetryTimes;
     }
 
-    write(msg: Message) {
+    public write(msg: Message) {
         this._socket && this._socket.write(DataHelper.getString(msg.getMessage()));
+    }
+
+    private _reg(msg) {
+        let data = msg.data;
+        let regMsg = new Message(data.regKey, 0, {
+            name: this._name
+        });
+
+        this.write(regMsg);
     }
 
     public destroy() {

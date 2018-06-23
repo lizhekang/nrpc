@@ -33,7 +33,7 @@ class Master extends TaskHandler {
 
         this._timer = setInterval(this._checkCbMap.bind(this), 1000);  //every second.
 
-        this._server = new Server(cfg.server);
+        this._server = new Server(this._name, cfg.server);
         this._server.start();
         this._server.on('rpc', this._rpc.bind(this));
     }
