@@ -22,6 +22,18 @@ abstract class Socket {
         this._cbMap[action].push(callback);
     }
 
+    /**
+     * listen event once
+     * @param {string} action
+     * @param {Function} callback
+     */
+    public once(action: string, callback: Function) {
+        if (!this._cbMap[action]) {
+            this._cbMap[action] = [];
+            this._cbMap[action].push(callback);
+        }
+    }
+
     protected handlerMessage(msg) {
         return new Promise((resolve, reject) => {
             if (this._cbMap[msg.action]) {
@@ -175,7 +187,7 @@ class Client extends Socket {
         if (!this._socket) {
             let name = this._name;
             let cfg = this._option;
-            this.on('reg', this._reg.bind(this));
+            this.once('reg', this._reg.bind(this));
 
             this._socket = net.createConnection({port: cfg.port}, () => {
                 let that = this;

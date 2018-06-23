@@ -13,7 +13,8 @@
     "nyc": "^11.8.0"
   },
   "scripts": {
-    "test": "nyc --reporter=html --reporter=text ava",
+    "test": "ava",
+    "nyctest": "nyc --reporter=html --reporter=text ava",
     "coverage": "nyc report --reporter=text-lcov | coveralls"
   }
 }

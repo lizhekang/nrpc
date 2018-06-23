@@ -42,14 +42,14 @@ class Master extends TaskHandler {
      * core call function
      * @param {string} name
      * @param {Array<any>} params
-     * @returns {Promise}
+     * @returns {boolean|string}
      */
-    public call(name: string, params: Array<any>, cb: Function, errCb: Function): void {
+    public call(name: string, params: Array<any>, cb: Function, errCb: Function): any {
         if (typeof this._object[name] != 'function') {
             let res = new Result(REMOTEFUNCISNOTDEFINE.result, REMOTEFUNCISNOTDEFINE.msg);
             errCb(res.getResult());
 
-            return;
+            return false;
         }
 
         let map = this._getValCbMap();
@@ -67,6 +67,8 @@ class Master extends TaskHandler {
             });
 
             client.write(DataHelper.getString(rpcMsg.getMessage()));
+
+            return client._name;    //return selected client's name
         } else {
             let map = this._server.getClientMap();
             let keys = Object.keys(map);
@@ -78,6 +80,8 @@ class Master extends TaskHandler {
                 res = new Result(NOREMOTECLIENT.result, NOREMOTECLIENT.msg);
             }
             errCb(res.getResult());
+
+            return false;
         }
     }
 
