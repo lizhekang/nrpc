@@ -8,6 +8,7 @@ import {Client, DataHelper, Message} from './socket';
  */
 class Slave extends TaskHandler {
     private _client;
+    private _name: string;
 
     /**
      * Master constructor
@@ -16,12 +17,14 @@ class Slave extends TaskHandler {
      */
     public constructor(object, config) {
         super(object, config);
+
+        this._name = config.name;
     }
 
     public init() {
         let cfg = this._config;
 
-        this._client = new Client(cfg.server);
+        this._client = new Client(this._name, cfg.server);
         this._client.start();
         this._client.on('rpc', this._rpc.bind(this));
     }

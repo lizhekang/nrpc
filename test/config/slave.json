@@ -1,7 +1,7 @@
 {
   "type": "slave",
+  "name": "worker1",
   "server": {
-    "name": "worker1",
     "ip": "127.0.0.1",
     "port": 10001,
     "retry": true,

@@ -5,10 +5,12 @@ const ALIVE_TIME = 2000;    //2 second
 const KEEP_ALIVE_TIME = ALIVE_TIME + 3000;
 
 abstract class Socket {
+    protected _name;    //name for socket
     protected _option;
     protected _cbMap;
 
-    constructor(option) {
+    constructor(name: string, option: object) {
+        this._name = name;
         this._option = option;
         this._cbMap = {};
     }
@@ -18,6 +20,18 @@ abstract class Socket {
             this._cbMap[action] = [];
         }
         this._cbMap[action].push(callback);
+    }
+
+    /**
+     * listen event once
+     * @param {string} action
+     * @param {Function} callback
+     */
+    public once(action: string, callback: Function) {
+        if (!this._cbMap[action]) {
+            this._cbMap[action] = [];
+            this._cbMap[action].push(callback);
+        }
     }
 
     protected handlerMessage(msg) {
@@ -66,8 +80,8 @@ class Server extends Socket {
     private _server: net.Server;
     private _clientMap;
 
-    public constructor(option) {
-        super(option);
+    public constructor(name, option) {
+        super(name, option);
         this._server = null;
         this._clientMap = {};
     }
@@ -84,7 +98,23 @@ class Server extends Socket {
             this._server = net.createServer((c) => {
                 console.log('connection:' + c.remoteAddress, c.remotePort);
                 let key = c.remoteAddress + '_' + c.remotePort;
-                this._clientMap[key] = c;
+                //this._clientMap[key] = c;
+
+                //ask client to reg
+                //handle get reg msg
+                let regKey = 'reg' + key;
+                this.on(regKey, (msg) => {
+                    let data = msg.data;
+                    let name = data.name;
+
+                    c['_name'] = name;
+                    this._clientMap[key] = c;
+                    console.log('reg:', key, name);
+                });
+                let regMsg = new Message('reg', 0, {
+                    regKey: regKey
+                });
+                c.write(JSON.stringify(regMsg.getMessage()));
 
                 //handle data input
                 c.on('data', (data) => {
@@ -138,42 +168,48 @@ class Server extends Socket {
 
 class Client extends Socket {
 
-    private _client;
+    private _socket;
     private _retryTime;
     private _timer;
 
-    constructor(option) {
-        super(option);
-        this._client = null;
+    constructor(name, option) {
+        super(name, option);
+
+        this._socket = null;
         this._retryTime = this._option.maxRetryTimes;
     }
 
-    start() {
+    public start() {
         this._initClientHandler();
     }
 
     private _initClientHandler() {
-        if (!this._client) {
+        if (!this._socket) {
+            let name = this._name;
             let cfg = this._option;
-            this._client = net.createConnection({port: cfg.port}, () => {
+            this.once('reg', this._reg.bind(this));
+
+            this._socket = net.createConnection({port: cfg.port}, () => {
                 let that = this;
 
                 this._timer = setInterval(tick, ALIVE_TIME);
 
                 function tick() {
-                    let msg = new Message('tick', 0, '');
+                    let msg = new Message('tick', 0, {
+                        name: name    //tell server the name
+                    });
 
-                    that._client && that._client.write(JSON.stringify(msg.getMessage()));
+                    that._socket && that._socket.write(JSON.stringify(msg.getMessage()));
                 };
 
-                this._client.on('data', (data) => {
+                this._socket.on('data', (data) => {
                     //data handler
                     let msg: message = DataHelper.getJSON(data);
 
                     this.handlerMessage(msg).then((res: any) => {
                         //if data is msg, pass toward the target
                         if (res && typeof res == 'object' && res.action) {
-                            that._client && this._client.write(DataHelper.getString(res));
+                            that._socket && this._socket.write(DataHelper.getString(res));
                         }
                     }).catch((err) => {
                         console.log(err);
@@ -181,16 +217,15 @@ class Client extends Socket {
                 })
             });
 
-            this._client.on('error', (err) => {
+            this._socket.on('error', (err) => {
                 console.log(err.code);
 
                 if (err.code == 'ECONNREFUSED' && this._option.retry && this._retryTime > 0) {
                     this._retryTime--;
                     console.log('Retry to connect after 1 sec!');
                     setTimeout(() => {
-                        this._client = null;
+                        this._socket = null;
                         this._initClientHandler();
-                        //this._client.connect();
                     }, 1000);
 
                     return;
@@ -202,13 +237,22 @@ class Client extends Socket {
         this._retryTime = this._option.maxRetryTimes;
     }
 
-    write(msg: Message) {
-        this._client && this._client.write(DataHelper.getString(msg.getMessage()));
+    public write(msg: Message) {
+        this._socket && this._socket.write(DataHelper.getString(msg.getMessage()));
+    }
+
+    private _reg(msg) {
+        let data = msg.data;
+        let regMsg = new Message(data.regKey, 0, {
+            name: this._name
+        });
+
+        this.write(regMsg);
     }
 
     public destroy() {
-        this._client.end();
-        this._client = null;
+        this._socket.end();
+        this._socket = null;
         this._timer && clearInterval(this._timer);
     }
 }

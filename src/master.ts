@@ -12,6 +12,7 @@ class Master extends TaskHandler {
     private _server;
     private _cbMap;
     private _timer;
+    private _name;
     private _baseCounter;
 
     /**
@@ -24,6 +25,7 @@ class Master extends TaskHandler {
 
         this._cbMap = {};
         this._baseCounter = new Number(100000, 5);  //max call deep
+        this._name = config.name;
     }
 
     public init() {
@@ -31,7 +33,7 @@ class Master extends TaskHandler {
 
         this._timer = setInterval(this._checkCbMap.bind(this), 1000);  //every second.
 
-        this._server = new Server(cfg.server);
+        this._server = new Server(this._name, cfg.server);
         this._server.start();
         this._server.on('rpc', this._rpc.bind(this));
     }
@@ -40,14 +42,14 @@ class Master extends TaskHandler {
      * core call function
      * @param {string} name
      * @param {Array<any>} params
-     * @returns {Promise}
+     * @returns {boolean|string}
      */
-    public call(name: string, params: Array<any>, cb: Function, errCb: Function): void {
+    public call(name: string, params: Array<any>, cb: Function, errCb: Function): any {
         if (typeof this._object[name] != 'function') {
             let res = new Result(REMOTEFUNCISNOTDEFINE.result, REMOTEFUNCISNOTDEFINE.msg);
             errCb(res.getResult());
 
-            return;
+            return false;
         }
 
         let map = this._getValCbMap();
@@ -65,6 +67,8 @@ class Master extends TaskHandler {
             });
 
             client.write(DataHelper.getString(rpcMsg.getMessage()));
+
+            return client._name;    //return selected client's name
         } else {
             let map = this._server.getClientMap();
             let keys = Object.keys(map);
@@ -76,6 +80,8 @@ class Master extends TaskHandler {
                 res = new Result(NOREMOTECLIENT.result, NOREMOTECLIENT.msg);
             }
             errCb(res.getResult());
+
+            return false;
         }
     }
 

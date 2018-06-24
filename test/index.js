@@ -43,7 +43,42 @@ class tpl {
             }, 12000)
         });
     }
+
+    static getname() {
+        return this._name;  //get client name
+    }
 }
+
+test.serial('get worker\'s name.', async t => {
+    let c1 = new Core(tpl, mcfg);
+    let c2 = new Core(tpl, scfg);
+    let c3 = new Core(tpl, scfg);
+
+    c1.init();
+    c2.init();
+    c3.init();
+
+    await pTimeout(100);
+
+    await new Promise((resolve, reject) => {
+        let name = c1.call('add', [1, 2], (result) => {
+            resolve(true);
+        }, (err) => {
+            resolve(true);
+        });
+
+        if(name && typeof name == 'string') {
+            console.log('worker name', name);
+            t.pass();
+        } else {
+            t.fail();
+        }
+    });
+
+    c1.destroy();
+    c2.destroy();
+    c3.destroy();
+});
 
 test.serial('call add function.', async t => {
     let c1 = new Core(tpl, mcfg);
@@ -209,6 +244,36 @@ test.serial('remote much call in a time.', async t => {
             } else {
                 t.fail(err.msg);
             }
+            resolve(true);
+        });
+    });
+
+    c1.destroy();
+    c2.destroy();
+    c3.destroy();
+});
+
+test.serial('get client name.', async t => {
+    let c1 = new Core(tpl, mcfg);
+    let c2 = new Core(tpl, scfg);
+    let c3 = new Core(tpl, scfg);
+
+    c1.init();
+    c2.init();
+    c3.init();
+
+    await pTimeout(100);
+
+    await new Promise((resolve, reject) => {
+        c1.call('getname', [], (result) => {
+            if (result == 'worker1') {
+                t.pass();
+            } else {
+                t.fail();
+            }
+            resolve(true);
+        }, (err) => {
+            t.fail(err);
             resolve(true);
         });
     });

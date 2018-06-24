@@ -1,6 +1,6 @@
 {
   "name": "wrpc",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Simple node RPC framework.",
   "main": "index.js",
   "repository": "git@github.com:lizhekang/wrpc.git",
@@ -13,7 +13,8 @@
     "nyc": "^11.8.0"
   },
   "scripts": {
-    "test": "nyc --reporter=html --reporter=text ava",
+    "test": "ava",
+    "nyctest": "nyc --reporter=html --reporter=text ava",
     "coverage": "nyc report --reporter=text-lcov | coveralls"
   }
 }
