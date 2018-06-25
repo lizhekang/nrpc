@@ -41,6 +41,7 @@ abstract class Socket {
 
                 cbList.forEach((cb) => {
                     let res = cb(msg);
+
                     if (res && res.toString() == '[object Promise]') {
                         res.then((data) => {
                             resolve(data);
@@ -75,6 +76,38 @@ class DataHelper {
     }
 }
 
+class socketWriter {
+    private _socket;
+    private _queue;
+    private _isUsed;
+
+    constructor(socket) {
+        this._socket = socket;
+        this._queue = [];
+        this._isUsed = false;
+    }
+
+    public write(data) {
+        this._queue.push(data);
+
+        if(!this._isUsed) {
+            this._write();
+        }
+    }
+
+    private _write() {
+        let _d =this._queue.pop();
+
+        if(_d) {
+            this._isUsed = true;
+            this._socket.write(_d, () => {
+                this._isUsed = false;
+                this._write();
+            });
+        }
+    }
+}
+
 class Server extends Socket {
 
     private _server: net.Server;
@@ -98,7 +131,7 @@ class Server extends Socket {
             this._server = net.createServer((c) => {
                 console.log('connection:' + c.remoteAddress, c.remotePort);
                 let key = c.remoteAddress + '_' + c.remotePort;
-                //this._clientMap[key] = c;
+                let writeHelper = new socketWriter(c);
 
                 //ask client to reg
                 //handle get reg msg
@@ -114,7 +147,7 @@ class Server extends Socket {
                 let regMsg = new Message('reg', 0, {
                     regKey: regKey
                 });
-                c.write(JSON.stringify(regMsg.getMessage()));
+                writeHelper.write(JSON.stringify(regMsg.getMessage()));
 
                 //handle data input
                 c.on('data', (data) => {
@@ -124,7 +157,7 @@ class Server extends Socket {
                     this.handlerMessage(msg).then((res: any) => {
                         //if data is msg, pass toward the target
                         if (res && typeof res == 'object' && res.action) {
-                            c.write(DataHelper.getString(res));
+                            writeHelper.write(DataHelper.getString(res));
                         }
                     }).catch((err) => {
                         console.log(err);
@@ -169,6 +202,7 @@ class Server extends Socket {
 class Client extends Socket {
 
     private _socket;
+    private _writeHelper;
     private _retryTime;
     private _timer;
 
@@ -199,7 +233,7 @@ class Client extends Socket {
                         name: name    //tell server the name
                     });
 
-                    that._socket && that._socket.write(JSON.stringify(msg.getMessage()));
+                    that.write(msg.getMessage());
                 };
 
                 this._socket.on('data', (data) => {
@@ -209,7 +243,7 @@ class Client extends Socket {
                     this.handlerMessage(msg).then((res: any) => {
                         //if data is msg, pass toward the target
                         if (res && typeof res == 'object' && res.action) {
-                            that._socket && this._socket.write(DataHelper.getString(res));
+                            that.write(res);
                         }
                     }).catch((err) => {
                         console.log(err);
@@ -237,8 +271,18 @@ class Client extends Socket {
         this._retryTime = this._option.maxRetryTimes;
     }
 
-    public write(msg: Message) {
-        this._socket && this._socket.write(DataHelper.getString(msg.getMessage()));
+    public write(msg: any) {
+        if(this._socket) {
+            if(!this._writeHelper) {
+                this._writeHelper = new socketWriter(this._socket);
+            }
+            if(msg instanceof Message) {    //check msg's type
+                this._writeHelper.write(DataHelper.getString(msg.getMessage()));
+            }else {
+                this._writeHelper.write(DataHelper.getString(msg));
+            }
+        }
+        //this._socket && this._socket.write(DataHelper.getString(msg.getMessage()));
     }
 
     private _reg(msg) {
@@ -247,7 +291,7 @@ class Client extends Socket {
             name: this._name
         });
 
-        this.write(regMsg);
+        this.write(regMsg.getMessage());
     }
 
     public destroy() {

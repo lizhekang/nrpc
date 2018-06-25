@@ -100,7 +100,7 @@ test.serial('call add function.', async t => {
             }
             resolve(true);
         }, (err) => {
-            t.fail(err);
+            t.fail(JSON.stringify(err));
             resolve(true);
         });
     });
