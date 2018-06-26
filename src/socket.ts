@@ -133,6 +133,8 @@ class Server extends Socket {
                 let key = c.remoteAddress + '_' + c.remotePort;
                 let writeHelper = new socketWriter(c);
 
+                c.setNoDelay(true);  //disable tcp buffer
+
                 //ask client to reg
                 //handle get reg msg
                 let regKey = 'reg' + key;
@@ -250,6 +252,8 @@ class Client extends Socket {
                     });
                 })
             });
+
+            this._socket.setNoDelay(true);  //disable tcp buffer
 
             this._socket.on('error', (err) => {
                 console.log(err.code);
